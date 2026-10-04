@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🦁 JioFarm — Automation & Promo Hunter Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fef3c7', 500: '#f59e0b', 600: '#d97706', 700: '#b45309' },
+            darkBg: '#090d16',
+            cardBg: '#111827',
+            cardBorder: '#1f2937'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #090d16; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0b0f19; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col custom-scroll">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-[#0f172a]/70 backdrop-blur sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">🦁</span>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+            JioFarm Panel
+          </h1>
+          <p class="text-xs text-slate-400">Multi-Service Telco Hunter & Promo Vault</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <!-- Running Indicator -->
+        <div id="statusBadge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700">
+          <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+          <span>IDLE</span>
+        </div>
+
+        <!-- Balance Widget -->
+        <div class="bg-gray-900 border border-gray-800 px-4 py-1.5 rounded-lg flex items-center gap-2">
+          <span class="text-xs text-slate-400 font-medium">Saldo Provider:</span>
+          <span id="providerBalance" class="text-sm font-bold text-emerald-400">$0.00</span>
+          <button onclick="refreshBalance()" title="Refresh Saldo" class="text-xs text-slate-500 hover:text-slate-300 ml-1">🔄</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto w-full p-6 space-y-6 flex-1">
+    
+    <!-- Top Stats Bar -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-[#111827] border border-gray-800 rounded-xl p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">🎯 Link Ditemukan (Sesi)</p>
+        <p id="statSessionLinks" class="text-2xl font-black text-amber-400 mt-1">0</p>
+      </div>
+      <div class="bg-[#111827] border border-gray-800 rounded-xl p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">📱 Percobaan Sesi</p>
+        <p id="statSessionAttempts" class="text-2xl font-bold text-slate-200 mt-1">0</p>
+      </div>
+      <div class="bg-[#111827] border border-gray-800 rounded-xl p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">📦 Total Link Vault (DB)</p>
+        <p id="statTotalDbLinks" class="text-2xl font-bold text-emerald-400 mt-1">0</p>
+      </div>
+      <div class="bg-[#111827] border border-gray-800 rounded-xl p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">⏱ Durasi Berjalan</p>
+        <p id="statElapsed" class="text-2xl font-mono font-bold text-slate-300 mt-1">00:00</p>
+      </div>
+    </div>
+
+    <!-- Controls & Service Configuration Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Panel Kontrol & Pengaturan Target -->
+      <div class="lg:col-span-1 bg-[#111827] border border-gray-800 rounded-xl p-5 space-y-4">
+        <h2 class="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-gray-800 pb-3">
+          <span>⚙️</span> Konfigurasi & Target Hunter
+        </h2>
+
+        <!-- Service Template Selector -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Target Servis / Promo</label>
+          <select id="selectService" class="w-full bg-gray-900 border border-gray-700 text-sm rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+            <!-- Loaded dynamically -->
+          </select>
+          <p id="serviceDesc" class="text-[11px] text-slate-400 mt-1 italic"></p>
+        </div>
+
+        <!-- SMS Provider Selector -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">SMS Provider</label>
+          <select id="selectProvider" onchange="refreshBalance()" class="w-full bg-gray-900 border border-gray-700 text-sm rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+            <option value="smspool">SMSPool.net (Recommended / High Fresh Rate)</option>
+            <option value="smsman">SMS-Man (API v2.0)</option>
+            <option value="grizzlysms">GrizzlySMS</option>
+            <option value="fivesim">5SIM.net</option>
+          </select>
+        </div>
+
+        <!-- Proxy Config -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">
+            Rotating Proxy (Opsional)
+            <span class="text-[10px] text-slate-400 font-normal">http://user:pass@host:port</span>
+          </label>
+          <input type="text" id="inputProxy" placeholder="http://residential-india.proxy:8080" class="w-full bg-gray-900 border border-gray-700 text-xs rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <!-- Hunter Limits -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Max Price ($)</label>
+            <input type="number" step="0.05" id="inputMaxPrice" value="0.5" class="w-full bg-gray-900 border border-gray-700 text-sm rounded-lg px-3 py-1.5 text-slate-200">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Workers (Paralel)</label>
+            <input type="number" id="inputConcurrency" min="1" max="10" value="2" class="w-full bg-gray-900 border border-gray-700 text-sm rounded-lg px-3 py-1.5 text-slate-200">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Target Links (Stop)</label>
+            <input type="number" id="inputTarget" placeholder="Unlimited" class="w-full bg-gray-900 border border-gray-700 text-sm rounded-lg px-3 py-1.5 text-slate-200">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Max Percobaan</label>
+            <input type="number" id="inputCount" placeholder="Unlimited" class="w-full bg-gray-900 border border-gray-700 text-sm rounded-lg px-3 py-1.5 text-slate-200">
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="pt-2">
+          <button id="btnStart" onclick="startHunter()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-900 font-bold py-3 px-4 rounded-xl shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-2">
+            <span>🚀</span> Mulai Panen (Scan & Buy)
+          </button>
+          <button id="btnStop" onclick="stopHunter()" class="w-full hidden mt-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-800 font-bold py-2.5 px-4 rounded-xl transition active:scale-[0.98]">
+            🛑 Berhenti
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Right Area: Workers Status Table & Live Link Vault -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Workers Table -->
+        <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+            <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+              <span>👥</span> Status Live Workers
+            </h2>
+            <span id="activeWorkerCount" class="text-xs text-slate-400">0 aktif</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 bg-gray-900/60 uppercase text-[10px] tracking-wider border-b border-gray-800">
+                <tr>
+                  <th class="py-2.5 px-3">#</th>
+                  <th class="py-2.5 px-3">Tahap</th>
+                  <th class="py-2.5 px-3">Nomor Virtual</th>
+                  <th class="py-2.5 px-3">Status / Keterangan</th>
+                  <th class="py-2.5 px-3 text-right">Attempt</th>
+                </tr>
+              </thead>
+              <tbody id="workersBody" class="divide-y divide-gray-800/60 font-mono">
+                <tr>
+                  <td colspan="5" class="py-6 text-center text-slate-500 font-sans">Belum ada worker berjalan. Klik Mulai Panen.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Hasil Link Vault -->
+        <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+            <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+              <span>🎯</span> Link Vault (Terkumpul)
+            </h2>
+            <button onclick="copyAllLinks()" class="text-xs bg-emerald-950/60 text-emerald-400 border border-emerald-800/80 px-2.5 py-1 rounded hover:bg-emerald-900 transition">
+              📋 Salin Semua
+            </button>
+          </div>
+
+          <div id="linksList" class="space-y-2 max-h-48 overflow-y-auto custom-scroll pr-1">
+            <p class="text-xs text-slate-500 italic py-2">Belum ada link ditemukan pada sesi ini.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Live Console Output -->
+    <div class="bg-[#0b0f19] border border-gray-800 rounded-xl p-4 font-mono text-xs space-y-2">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+        <span class="text-slate-400 font-semibold flex items-center gap-2">
+          <span>📟</span> Live Engine Console
+        </span>
+        <button onclick="clearLogs()" class="text-[11px] text-slate-500 hover:text-slate-300">Clear</button>
+      </div>
+      <div id="consoleLogs" class="h-32 overflow-y-auto custom-scroll text-slate-300 space-y-1 pr-2">
+        <div class="text-slate-500">[System] Panel siap.</div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let servicesCache = [];
+
+    async function init() {
+      await loadServices();
+      await refreshBalance();
+      setInterval(pollStatus, 1500);
+    }
+
+    async function loadServices() {
+      try {
+        const res = await fetch('/api/services');
+        const list = await res.json();
+        servicesCache = list;
+        const sel = document.getElementById('selectService');
+        sel.innerHTML = '';
+        list.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = `${s.title}`;
+          sel.appendChild(opt);
+        });
+        updateServiceDesc();
+        sel.addEventListener('change', updateServiceDesc);
+      } catch (e) {
+        console.error("Gagal load services:", e);
+      }
+    }
+
+    function updateServiceDesc() {
+      const selVal = document.getElementById('selectService').value;
+      const item = servicesCache.find(x => x.id === selVal);
+      const descEl = document.getElementById('serviceDesc');
+      if (item) {
+        descEl.textContent = `${item.operator} | Promo: ${item.promo}`;
+      }
+    }
+
+    async function refreshBalance() {
+      const provider = document.getElementById('selectProvider').value;
+      try {
+        const res = await fetch(`/api/balance?provider=${provider}`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('providerBalance').textContent = `$${parseFloat(data.balance).toFixed(2)}`;
+        } else {
+          document.getElementById('providerBalance').textContent = '$0.00';
+        }
+      } catch (e) {
+        document.getElementById('providerBalance').textContent = '$0.00';
+      }
+    }
+
+    async function startHunter() {
+      const service = document.getElementById('selectService').value;
+      const provider = document.getElementById('selectProvider').value;
+      const proxy = document.getElementById('inputProxy').value.trim();
+      const maxPrice = parseFloat(document.getElementById('inputMaxPrice').value) || 0.5;
+      const concurrency = parseInt(document.getElementById('inputConcurrency').value) || 2;
+      const count = parseInt(document.getElementById('inputCount').value) || null;
+      const target = parseInt(document.getElementById('inputTarget').value) || null;
+
+      try {
+        const res = await fetch('/api/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_id: service,
+            provider_name: provider,
+            proxy_url: proxy,
+            max_price: maxPrice,
+            concurrency: concurrency,
+            count: count,
+            target: target
+          })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          alert("Gagal memulai farm: " + (data.error || "Unknown"));
+        } else {
+          pollStatus();
+        }
+      } catch (e) {
+        alert("Koneksi gagal: " + e.message);
+      }
+    }
+
+    async function stopHunter() {
+      await fetch('/api/stop', { method: 'POST' });
+      pollStatus();
+    }
+
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // Status Badge & Buttons
+        const badge = document.getElementById('statusBadge');
+        const btnStart = document.getElementById('btnStart');
+        const btnStop = document.getElementById('btnStop');
+
+        if (data.running) {
+          badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-700 animate-pulse";
+          badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>HUNTING</span>';
+          btnStart.classList.add('hidden');
+          btnStop.classList.remove('hidden');
+        } else {
+          badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700";
+          badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-gray-500"></span><span>IDLE</span>';
+          btnStart.classList.remove('hidden');
+          btnStop.classList.add('hidden');
+        }
+
+        // Stats
+        document.getElementById('statSessionLinks').textContent = data.stats.session_links;
+        document.getElementById('statSessionAttempts').textContent = data.stats.session_attempts;
+        document.getElementById('statTotalDbLinks').textContent = data.stats.db_total_links;
+        
+        const m = Math.floor(data.elapsed_seconds / 60).toString().padStart(2, '0');
+        const s = (data.elapsed_seconds % 60).toString().padStart(2, '0');
+        document.getElementById('statElapsed').textContent = `${m}:${s}`;
+
+        // Workers Table
+        document.getElementById('activeWorkerCount').textContent = `${data.workers.length} worker`;
+        const wBody = document.getElementById('workersBody');
+        if (data.workers.length === 0) {
+          wBody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-500 font-sans">Belum ada worker berjalan.</td></tr>';
+        } else {
+          wBody.innerHTML = data.workers.map(w => {
+            let phaseColor = "text-yellow-400";
+            if (w.phase === "DONE") phaseColor = "text-emerald-400";
+            else if (w.phase === "ERROR") phaseColor = "text-red-400";
+            else if (w.phase === "HUNTING") phaseColor = "text-purple-400 font-bold";
+
+            return `
+              <tr class="hover:bg-gray-800/30">
+                <td class="py-2 px-3 text-slate-400">#${w.wid}</td>
+                <td class="py-2 px-3 ${phaseColor}">${w.phase}</td>
+                <td class="py-2 px-3 text-slate-200">${w.phone}</td>
+                <td class="py-2 px-3 text-slate-300 truncate max-w-xs">${w.status}</td>
+                <td class="py-2 px-3 text-right text-slate-400">${w.attempts}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // Links Vault
+        const linksContainer = document.getElementById('linksList');
+        if (data.found_links.length === 0) {
+          linksContainer.innerHTML = '<p class="text-xs text-slate-500 italic py-2">Belum ada link ditemukan pada sesi ini.</p>';
+        } else {
+          linksContainer.innerHTML = data.found_links.map(link => `
+            <div class="flex items-center justify-between p-2 rounded bg-gray-900 border border-emerald-900/60 text-xs">
+              <a href="${link}" target="_blank" class="text-emerald-400 hover:underline truncate max-w-md">${link}</a>
+              <button onclick="navigator.clipboard.writeText('${link}')" class="text-[11px] text-slate-400 hover:text-white px-2 py-0.5 bg-gray-800 rounded ml-2">Salin</button>
+            </div>
+          `).join('');
+        }
+
+        // Logs
+        const logBox = document.getElementById('consoleLogs');
+        if (data.logs && data.logs.length > 0) {
+          logBox.innerHTML = data.logs.map(l => `<div>${escapeHtml(l)}</div>`).join('');
+          logBox.scrollTop = logBox.scrollHeight;
+        }
+
+      } catch (e) {
+        // silent error during polling
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function clearLogs() {
+      document.getElementById('consoleLogs').innerHTML = '<div class="text-slate-500">[System] Logs dibersihkan.</div>';
+    }
+
+    function copyAllLinks() {
+      fetch('/api/status').then(r => r.json()).then(data => {
+        if (data.found_links && data.found_links.length > 0) {
+          navigator.clipboard.writeText(data.found_links.join('\n'));
+          alert("Semua link berhasil disalin!");
+        } else {
+          alert("Belum ada link untuk disalin.");
+        }
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
